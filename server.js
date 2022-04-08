@@ -48,6 +48,8 @@ app.post("/hydrate-words", async function (req, res, next) {
 	const reqId = uuidv4()
 
 	const words = req.body
+	const username = req.body?.username || "noname"
+
 	const dbOperations = []
 
 	const browser = await puppeteer.launch({ 
@@ -78,7 +80,8 @@ app.post("/hydrate-words", async function (req, res, next) {
 
 	});
 
-	async checkIf
+	//async
+	const createUserPromise = createUser(words, username)
 
 	const map = {}
 	for(let i = 0; i < words.length; i++){
@@ -299,20 +302,6 @@ app.post("/hydrate-words", async function (req, res, next) {
 //    console.log("Word: " + word)
 //    console.log("Definition: " + chineseDef)
 //    console.log("Examples: " + exampleSentences)
-//    // fetch("https://api-bullhead-dc53baa7.paas.macrometa.io/_fabric/_system/_api/cursor", 
-//    //   {
-//    //     method: "POST",
-//    //     headers: {
-//    //       "Content-Type": "application/json",
-//    //       "Authorization": "bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjEuNjQ4MzU4MDg1NzMxOTQzZSs2LCJleHAiOjE2NDg0MDEyODUsImlzcyI6Im1hY3JvbWV0YSIsInByZWZlcnJlZF91c2VybmFtZSI6InJvb3QiLCJzdWIiOiJraW15b3VuZ2ppbjEwMDFfZ21haWwuY29tIiwidGVuYW50Ijoia2lteW91bmdqaW4xMDAxX2dtYWlsLmNvbSJ9.PxjCjlRpz8zPkL9uv0jBIdsBfNSS5sy0mJvCYD9Ybh4=" 
-//    //     }
-//    //     body: `{\"bindVars\":{\"word\":\"${word}\",\"definition\":\"${chineseDef}\",\"examples\":\"${exampleSentences}\"},\"query\":\"INSERT {word:@word,\n        definition:@definition,\n        examples:@examples} \nINTO words\",\"ttl\":0}`
-//    //   })
-//    //   .then(result => result.json())
-//    //   .then(x => x.result.map(y => {
-//    //     return {word: y.word, meaning: "IM YJ KING"}
-//    //   }))
-//    //   .catch(x => console.log(x))
 
 //  }
 
