@@ -1,6 +1,53 @@
+(node:49480) ExperimentalWarning: VM Modules is an experimental feature. This feature could change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[0m[7m[1m[31m FAIL [39m[22m[27m[0m [2m./[22m[1mscrape-and-create-word.test.js[22m
+[1m[31m  [1m● [22m[1mmacrometa scrape and create word works and response is handled correctly[39m[22m
 
-> orbit-chinese-backend@1.0.0 start
-> node server.js
+    TypeError: object is not iterable (cannot read property Symbol(Symbol.iterator))
+        at Function.all (<anonymous>)
+[2m[22m
+[2m    [0m [90m 47 |[39m 	[90m// logToFile.trace(reqId + " Chinese examples number ", i, examples.length)[39m[0m[22m
+[2m    [0m [90m 48 |[39m[0m[22m
+[2m    [0m[31m[1m>[22m[2m[39m[90m 49 |[39m 	[36mconst[39m [chineseDef[33m,[39m examples] [33m=[39m [36mawait[39m [33mPromise[39m[33m.[39mall(chineseDefPromise[33m,[39m examplesPromise)[0m[22m
+[2m    [0m [90m    |[39m 	                                             [31m[1m^[22m[2m[39m[0m[22m
+[2m    [0m [90m 50 |[39m[0m[22m
+[2m    [0m [90m 51 |[39m 	[36mconst[39m body [33m=[39m {[0m[22m
+[2m    [0m [90m 52 |[39m 		bindVars[33m:[39m {[0m[22m
+[2m[22m
+[2m      [2mat scrapeAndCreateWord ([22m[2mscrape-and-create-word.js[2m:49:47)[22m[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36mscrape-and-create-word.test.js[39m[0m[2m:20:9)[22m[2m[22m
 
-Example app listening on port 8000!
-Running tests..
+
+  [1m● [22mTest suite failed to run
+
+    Evaluation failed: ReferenceError: cov_tsogtz1b1 is not defined
+
+      [2mat ExecutionContext._evaluateInternal ([22mnode_modules/puppeteer/src/common/ExecutionContext.ts[2m:273:13)[22m
+      [2mat ExecutionContext.evaluate ([22mnode_modules/puppeteer/src/common/ExecutionContext.ts[2m:140:12)[22m
+
+  [1m● [22mTest suite failed to run
+
+    Evaluation failed: ReferenceError: cov_tsogtz1b1 is not defined
+
+      [2mat ExecutionContext._evaluateInternal ([22mnode_modules/puppeteer/src/common/ExecutionContext.ts[2m:273:13)[22m
+      [2mat ExecutionContext.evaluate ([22mnode_modules/puppeteer/src/common/ExecutionContext.ts[2m:140:12)[22m
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [2m./[22m[1mget-words.test.js[22m
+  [1m● [22mConsole
+
+    [2mconsole.log[22m
+      Number of words: 8
+[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36mget-words.test.js[39m[0m[2m:8:11)[22m[2m[22m
+
+    [2mconsole.log[22m
+      Error: getwords operation to DB returned error: {"error":true,"errorNum":11,"errorMessage":"not authorized to execute this request","code":401}
+[2m[22m
+[2m      [2mat Object.<anonymous> ([22m[2m[0m[36mget-words.test.js[39m[0m[2m:18:13)[22m[2m[22m
+
+
+[1mTest Suites: [22m[1m[31m1 failed[39m[22m, [1m[32m1 passed[39m[22m, 2 total
+[1mTests:       [22m[1m[31m1 failed[39m[22m, [1m[32m2 passed[39m[22m, 3 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        2.785 s, estimated 3 s
+[2mRan all test suites[22m[2m.[22m

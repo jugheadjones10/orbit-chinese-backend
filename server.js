@@ -7,19 +7,21 @@ var util = require('util')
 const puppeteer = require('puppeteer-extra')
 const StealthPlugin = require('puppeteer-extra-plugin-stealth')
 
+const createWord = require('create-word')
+
 require('dotenv').config()
 
 puppeteer.use(StealthPlugin())
 
 log4js.configure({
-  appenders: {
-    out: { type: 'stdout' },
-    app: { type: 'file', filename: 'logs/logs6' }
-  },
-  categories: {
-    default: { appenders: [ 'out' ], level: 'trace' },
-    app: { appenders: ['app'], level: 'trace' }
-  }
+	appenders: {
+		out: { type: 'stdout' },
+		app: { type: 'file', filename: 'logs/logs6' }
+	},
+	categories: {
+		default: { appenders: [ 'out' ], level: 'trace' },
+		app: { appenders: ['app'], level: 'trace' }
+	}
 });
 
 const logToFile = log4js.getLogger('app');
@@ -44,132 +46,71 @@ cedict.forEach(x => indexedMap[x.simplified] = {
 app.use(express.json());
 // app.use(express.urlencoded({ extended: true }));
 
+
 app.post("/hydrate-words", async function (req, res, next) {
-	const reqId = uuidv4()
+	try {
 
-	const words = req.body
-	const username = req.body?.username || "noname"
+		const reqId = uuidv4()
 
-	const dbOperations = []
+		const userReqWords = req.body
+		const username = req.body?.username || "noname"
 
-	const browser = await puppeteer.launch({ 
-		headless: true, 
-		args: ['--no-sandbox', '--disable-setuid-sandbox']
-	})
+		const dbOperations = []
 
-	const page = await browser.newPage()
-	page.setDefaultNavigationTimeout(0);
-
-	page.on('requestfailed', request => {
-		logToFile.trace(`ONREQFAILED reqid: ${reqId}, url: ${request.url()}, errText: ${request.failure().errorText}, method: ${request.method()}`)
-	});
-	//Check for responses that might redirect to broken link
-	//
-	page.on('requestfinished', request => {
-		logToFile.trace(`ONREQFINISHED reqid: ${reqId}, url: ${request.url()}, response: ${util.inspect(request.response())}, method: ${request.method()}`)
-	});
-	// Catch console log errors
-	page.on("pageerror", err => {
-		logToFile.trace(`Page error: ${err.toString()}`);
-	});
-	// Catch all console messages
-	page.on('console', msg => {
-		logToFile.trace('Logger:', msg.type());
-		logToFile.trace('Logger:', msg.text());
-		logToFile.trace('Logger:', msg.location());
-
-	});
-
-	//async
-	const createUserPromise = createUser(words, username)
-
-	const map = {}
-	for(let i = 0; i < words.length; i++){
-		const word = words[i]
-
-		const cedictEntry = indexedMap[word]
-		const englishDefs = cedictEntry?.definitions || "English definition unavailable"
-		const pinyin = cedictEntry?.pinyin || "pinyin unavailable"
-
-		logToFile.trace(reqId + ' Running test number: ' + i)
-
-		let status = await page.goto('https://hanyu.baidu.com/zici/s?wd=' + word)
-		status = status.status();
-
-		logToFile.trace(reqId + " STATUS def", status)
-
-		var chineseDef = await page.evaluate(() => {
-			return document.querySelector("dd p")?.innerHTML.trim() || "Chinese definition unavailable"
-		})
-		map[word] = chineseDef
-
-		logToFile.trace(reqId + " Chinese def number ", i, chineseDef)
-		// await page.screenshot({                      // Screenshot the website using defined options
-		// 	path: `./Reqid:${ reqId },WordNumber:${ i }.png`,                   // Save the screenshot in current directory
-		// 	fullPage: true                              // take a fullpage screenshot
-		// });
-
-		status = await page.goto('https://hanyu.baidu.com/s?wd=' + word + '造句')
-		status = status.status()
-		logToFile.trace(reqId + " STATUS examples", status)
-
-		var examples = await page.evaluate(() => {
-			var examplesList = [...document.querySelectorAll(".zaoju-item p")]
-			var exampleSentences = examplesList.map(x => {
-				return x.innerHTML 
-			})
-			return exampleSentences
+		const browser = await puppeteer.launch({ 
+			headless: true, 
+			args: ['--no-sandbox', '--disable-setuid-sandbox']
 		})
 
-		logToFile.trace(reqId + " Chinese examples number ", i, examples.length)
+		const page = await browser.newPage()
+		page.setDefaultNavigationTimeout(0);
 
-		//Think carefully about why the "word" closure error happened here
+		page.on('requestfailed', request => {
+			logToFile.trace(`ONREQFAILED reqid: ${reqId}, url: ${request.url()}, errText: ${request.failure().errorText}, method: ${request.method()}`)
+		});
+		//Check for responses that might redirect to broken link
+		//
+		page.on('requestfinished', request => {
+			logToFile.trace(`ONREQFINISHED reqid: ${reqId}, url: ${request.url()}, response: ${util.inspect(request.response())}, method: ${request.method()}`)
+		});
+		// Catch console log errors
+		page.on("pageerror", err => {
+			logToFile.trace(`Page error: ${err.toString()}`);
+		});
+		// Catch all console messages
+		page.on('console', msg => {
+			logToFile.trace('Logger:', msg.type());
+			logToFile.trace('Logger:', msg.text());
+			logToFile.trace('Logger:', msg.location());
 
-		// console.log("Word: " + word)
-		// console.log("Definition: " + chineseDef)
-		// console.log("English Definition: " + englishDefs)
-		// console.log("Examples: " + examples)
+		});
 
-		// const json = {
-		// 	bindVars: {
-		// 		word,
-		// 		chineseDef,
-		// 		englishDefs,
-		// 		examples,
-		// 		repetition: 0,
-		// 		interval: 0,
-		// 		efactor: 2.5,
-		// 		dueDate: dayjs(Date.now()).toISOString()
-		// 	}
-		// }
+		//async
+		const createUserPromise = createUser(userReqWords, username)
 
-		// return fetch("https://api-bullhead-dc53baa7.paas.macrometa.io/_fabric/_system/_api/restql/execute/insert-word", 
-		// 	{
-		// 		method: "POST",
-		// 		headers: {
-		// 			"Content-Type": "application/json",
-		// 			"Authorization": "apikey " + process.env.MACROMETA_API_KEY
-		// 		},
-		// 		body: JSON.stringify(json)
-		// 	})
-		// 	.then(res => res.json())
-		// 	.then(res => {
-		// 		if(res.error){
-		// 			return Promise.reject("POST operation to DB returned error: " + JSON.stringify(res))
-		// 		}else{
-		// 			return json.bindVars
-		// 		}
-		// 	})
+		// Get all words in the database to check against the user's words list
+		const words = await getWords()
 
-		// dbOperations.push(dbInsertPromise)
-		logToFile.trace(reqId + " current MAP situation", i, map)
-	}
+		const wordMap = {}
+		words.forEach(word => {
+			wordMap[word.word] = word
+		})
+
+		// If word is not in database, it means I haven't scraped it before. Scrape these and add to database.
+		const scrapingQueue = []
+		userReqWords.forEach(word => {
+			if(!wordMap[word]){
+				const scrapeAndCreateWordPromise = scrapeAndCreateWord(word, page)		
+				scrapingQueue.push(scrapeAndCreateWordPromise)
+			}
+		})
+
+		await Promise.all([...scrapingQueue, createUserPromise])
+
+		//Eventually I'll need to return a flashcard url to the use for his first review session
+		res.status(200)
 
 
-	var chineseDefAndExamplesPromise = puppeteer.launch({ 
-		headless: true, 
-		args: ['--no-sandbox', '--disable-setuid-sandbox'],
-	}).then(async browser => {
 
 
 		const map = {}
@@ -180,9 +121,13 @@ app.post("/hydrate-words", async function (req, res, next) {
 			const englishDefs = cedictEntry?.definitions || "English definition unavailable"
 			const pinyin = cedictEntry?.pinyin || "pinyin unavailable"
 
+			const createWordPromise = createWord(word)
+
 			logToFile.trace(reqId + ' Running test number: ' + i)
+
 			let status = await page.goto('https://hanyu.baidu.com/zici/s?wd=' + word)
 			status = status.status();
+
 			logToFile.trace(reqId + " STATUS def", status)
 
 			var chineseDef = await page.evaluate(() => {
@@ -253,17 +198,108 @@ app.post("/hydrate-words", async function (req, res, next) {
 		}
 
 
-		await page.close();
-		await browser.close();
-	})
+		var chineseDefAndExamplesPromise = puppeteer.launch({ 
+			headless: true, 
+			args: ['--no-sandbox', '--disable-setuid-sandbox'],
+		}).then(async browser => {
 
 
-	// Promise.all(dbOperations)
-	// 	.then(results => {
-	// 		console.log("FINAL RESULTS", results)
-	// 		res.send(results)
-	// 	})
-	// 	.catch(next)
+			const map = {}
+			for(let i = 0; i < words.length; i++){
+				const word = words[i]
+
+				const cedictEntry = indexedMap[word]
+				const englishDefs = cedictEntry?.definitions || "English definition unavailable"
+				const pinyin = cedictEntry?.pinyin || "pinyin unavailable"
+
+				logToFile.trace(reqId + ' Running test number: ' + i)
+				let status = await page.goto('https://hanyu.baidu.com/zici/s?wd=' + word)
+				status = status.status();
+				logToFile.trace(reqId + " STATUS def", status)
+
+				var chineseDef = await page.evaluate(() => {
+					return document.querySelector("dd p")?.innerHTML.trim() || "Chinese definition unavailable"
+				})
+				map[word] = chineseDef
+
+				logToFile.trace(reqId + " Chinese def number ", i, chineseDef)
+				// await page.screenshot({                      // Screenshot the website using defined options
+				// 	path: `./Reqid:${ reqId },WordNumber:${ i }.png`,                   // Save the screenshot in current directory
+				// 	fullPage: true                              // take a fullpage screenshot
+				// });
+
+				status = await page.goto('https://hanyu.baidu.com/s?wd=' + word + '造句')
+				status = status.status()
+				logToFile.trace(reqId + " STATUS examples", status)
+
+				var examples = await page.evaluate(() => {
+					var examplesList = [...document.querySelectorAll(".zaoju-item p")]
+					var exampleSentences = examplesList.map(x => {
+						return x.innerHTML 
+					})
+					return exampleSentences
+				})
+
+				logToFile.trace(reqId + " Chinese examples number ", i, examples.length)
+
+				//Think carefully about why the "word" closure error happened here
+
+				// console.log("Word: " + word)
+				// console.log("Definition: " + chineseDef)
+				// console.log("English Definition: " + englishDefs)
+				// console.log("Examples: " + examples)
+
+				// const json = {
+				// 	bindVars: {
+				// 		word,
+				// 		chineseDef,
+				// 		englishDefs,
+				// 		examples,
+				// 		repetition: 0,
+				// 		interval: 0,
+				// 		efactor: 2.5,
+				// 		dueDate: dayjs(Date.now()).toISOString()
+				// 	}
+				// }
+
+				// return fetch("https://api-bullhead-dc53baa7.paas.macrometa.io/_fabric/_system/_api/restql/execute/insert-word", 
+				// 	{
+				// 		method: "POST",
+				// 		headers: {
+				// 			"Content-Type": "application/json",
+				// 			"Authorization": "apikey " + process.env.MACROMETA_API_KEY
+				// 		},
+				// 		body: JSON.stringify(json)
+				// 	})
+				// 	.then(res => res.json())
+				// 	.then(res => {
+				// 		if(res.error){
+				// 			return Promise.reject("POST operation to DB returned error: " + JSON.stringify(res))
+				// 		}else{
+				// 			return json.bindVars
+				// 		}
+				// 	})
+
+				// dbOperations.push(dbInsertPromise)
+				logToFile.trace(reqId + " current MAP situation", i, map)
+			}
+
+
+			await page.close();
+			await browser.close();
+		})
+
+
+		// Promise.all(dbOperations)
+		// 	.then(results => {
+		// 		console.log("FINAL RESULTS", results)
+		// 		res.send(results)
+		// 	})
+		// 	.catch(next)
+
+	} catch(error){
+		return next(error)
+	}
 
 });
 
@@ -301,6 +337,19 @@ app.post("/hydrate-words", async function (req, res, next) {
 
 //    console.log("Word: " + word)
 //    console.log("Definition: " + chineseDef)
+//    // fetch("https://api-bullhead-dc53baa7.paas.macrometa.io/_fabric/_system/_api/cursor", 
+//    //   {
+//    //     method: "POST",
+//    //     headers: {
+//    //       "Content-Type": "application/json",
+//    //     }
+//    //     body: `{\"bindVars\":{\"word\":\"${word}\",\"definition\":\"${chineseDef}\",\"examples\":\"${exampleSentences}\"},\"query\":\"INSERT {word:@word,\n        definition:@definition,\n        examples:@examples} \nINTO words\",\"ttl\":0}`
+//    //   })
+//    //   .then(result => result.json())
+//    //   .then(x => x.result.map(y => {
+//    //     return {word: y.word, meaning: "IM YJ KING"}
+//    //   }))
+//    //   .catch(x => console.log(x))
 //    console.log("Examples: " + exampleSentences)
 
 //  }
