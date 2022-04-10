@@ -1,11 +1,13 @@
 const express = require("express");
 var fs = require('fs');
-var dayjs = require('dayjs')
 var log4js = require("log4js");
 const { v4: uuidv4 } = require('uuid');
 var util = require('util')
+
 const puppeteer = require('puppeteer-extra')
 const StealthPlugin = require('puppeteer-extra-plugin-stealth')
+
+const { PromisePool } = require("PromisePool")
 
 const createWord = require('create-word')
 
@@ -55,35 +57,33 @@ app.post("/hydrate-words", async function (req, res, next) {
 		const userReqWords = req.body
 		const username = req.body?.username || "noname"
 
-		const dbOperations = []
-
 		const browser = await puppeteer.launch({ 
 			headless: true, 
 			args: ['--no-sandbox', '--disable-setuid-sandbox']
 		})
 
-		const page = await browser.newPage()
-		page.setDefaultNavigationTimeout(0);
+		//const page = await browser.newPage()
+		//page.setDefaultNavigationTimeout(0);
 
-		page.on('requestfailed', request => {
-			logToFile.trace(`ONREQFAILED reqid: ${reqId}, url: ${request.url()}, errText: ${request.failure().errorText}, method: ${request.method()}`)
-		});
-		//Check for responses that might redirect to broken link
-		//
-		page.on('requestfinished', request => {
-			logToFile.trace(`ONREQFINISHED reqid: ${reqId}, url: ${request.url()}, response: ${util.inspect(request.response())}, method: ${request.method()}`)
-		});
-		// Catch console log errors
-		page.on("pageerror", err => {
-			logToFile.trace(`Page error: ${err.toString()}`);
-		});
-		// Catch all console messages
-		page.on('console', msg => {
-			logToFile.trace('Logger:', msg.type());
-			logToFile.trace('Logger:', msg.text());
-			logToFile.trace('Logger:', msg.location());
+		//page.on('requestfailed', request => {
+		//	logToFile.trace(`ONREQFAILED reqid: ${reqId}, url: ${request.url()}, errText: ${request.failure().errorText}, method: ${request.method()}`)
+		//});
+		////Check for responses that might redirect to broken link
+		////
+		//page.on('requestfinished', request => {
+		//	logToFile.trace(`ONREQFINISHED reqid: ${reqId}, url: ${request.url()}, response: ${util.inspect(request.response())}, method: ${request.method()}`)
+		//});
+		//// Catch console log errors
+		//page.on("pageerror", err => {
+		//	logToFile.trace(`Page error: ${err.toString()}`);
+		//});
+		//// Catch all console messages
+		//page.on('console', msg => {
+		//	logToFile.trace('Logger:', msg.type());
+		//	logToFile.trace('Logger:', msg.text());
+		//	logToFile.trace('Logger:', msg.location());
 
-		});
+		//});
 
 		//async
 		const createUserPromise = createUser(userReqWords, username)
@@ -97,19 +97,20 @@ app.post("/hydrate-words", async function (req, res, next) {
 		})
 
 		// If word is not in database, it means I haven't scraped it before. Scrape these and add to database.
-		const scrapingQueue = []
-		userReqWords.forEach(word => {
-			if(!wordMap[word]){
-				const scrapeAndCreateWordPromise = scrapeAndCreateWord(word, page)		
-				scrapingQueue.push(scrapeAndCreateWordPromise)
+		// const scrapingQueue = []
+		function *wordScrapeGenerator(){
+			for(let word of userReqWords){
+				if(!wordMap[word]){
+					yield scrapeAndCreateWord(word, browser)		
+				}
 			}
-		})
+		}
+		const scrapeAndCreatePromisePool = new PromisePool(*wordScrapeGenerator(), 5)
 
-		await Promise.all([...scrapingQueue, createUserPromise])
+		await Promise.all([scrapeAndCreateWordPromise.start(), createUserPromise])
 
 		//Eventually I'll need to return a flashcard url to the use for his first review session
 		res.status(200)
-
 
 
 

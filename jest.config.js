@@ -94,7 +94,7 @@ module.exports = {
 
   // A preset that is used as a base for Jest's configuration
   // preset: undefined,
-  preset: "jest-puppeteer"
+  preset: "jest-puppeteer",
 
   // Run tests from one or more projects
   // projects: undefined,
@@ -192,4 +192,6 @@ module.exports = {
 
   // Whether to use watchman for file crawling
   // watchman: true,
+
+  testTimeout: 10000
 };
